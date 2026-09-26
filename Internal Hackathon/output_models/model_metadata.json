@@ -1,0 +1,84 @@
+{
+  "best_model_name": "Logistic_Regression_Baseline",
+  "class_names": [
+    "0",
+    "1",
+    "2",
+    "3"
+  ],
+  "numeric_features": [
+    "latitude",
+    "longitude",
+    "rainfall_24h_mm",
+    "rainfall_intensity_mm_hr",
+    "water_level_m",
+    "reservoir_discharge_cusecs",
+    "elevation_m",
+    "slope_degrees",
+    "drain_density_km_sqkm",
+    "siltation_level_pct",
+    "drain_capacity_pct",
+    "past_flood_frequency",
+    "historical_max_depth_cm"
+  ],
+  "categorical_features": [
+    "zone",
+    "land_use"
+  ],
+  "all_feature_names": [
+    "latitude",
+    "longitude",
+    "rainfall_24h_mm",
+    "rainfall_intensity_mm_hr",
+    "water_level_m",
+    "reservoir_discharge_cusecs",
+    "elevation_m",
+    "slope_degrees",
+    "drain_density_km_sqkm",
+    "siltation_level_pct",
+    "drain_capacity_pct",
+    "past_flood_frequency",
+    "historical_max_depth_cm",
+    "zone_Central",
+    "zone_Coastal",
+    "zone_East",
+    "zone_North",
+    "zone_North-East",
+    "zone_North-West",
+    "zone_South",
+    "zone_South-Central",
+    "zone_South-East",
+    "zone_South-West",
+    "zone_West",
+    "land_use_Commercial",
+    "land_use_Green_Space",
+    "land_use_High_Density_Residential",
+    "land_use_Industrial",
+    "land_use_Low_Density_Residential"
+  ],
+  "benchmark_results": {
+    "Logistic_Regression_Baseline": {
+      "accuracy": 0.9629,
+      "balanced_accuracy": 0.9371,
+      "macro_f1": 0.9413,
+      "weighted_f1": 0.9624,
+      "roc_auc": 0.9964
+    },
+    "Random_Forest_Classifier": {
+      "accuracy": 0.9343,
+      "balanced_accuracy": 0.8981,
+      "macro_f1": 0.901,
+      "weighted_f1": 0.9336,
+      "roc_auc": 0.9912
+    },
+    "Hist_Gradient_Boosting": {
+      "accuracy": 0.9329,
+      "balanced_accuracy": 0.8932,
+      "macro_f1": 0.8972,
+      "weighted_f1": 0.9321,
+      "roc_auc": 0.9923
+    }
+  },
+  "training_samples": 2800,
+  "test_samples": 700
+}

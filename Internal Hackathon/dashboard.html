@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Urban Flood Impact Classification & Preparedness Platform</title>
+  <!-- Google Fonts & Leaflet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: rgba(16, 24, 40, 0.75);
+      --bg-card-hover: rgba(22, 34, 58, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(56, 189, 248, 0.3);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-cyan: #06b6d4;
+      --accent-blue: #3b82f6;
+      --risk-low: #10b981;
+      --risk-mod: #f59e0b;
+      --risk-high: #f97316;
+      --risk-severe: #ef4444;
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(at 10% 10%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
+        radial-gradient(at 90% 90%, rgba(59, 130, 246, 0.06) 0px, transparent 50%);
+    }
+
+    /* Header */
+    header {
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+    }
+
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #ffffff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .sdg-badges {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .sdg-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      letter-spacing: 0.02em;
+    }
+
+    .sdg-11 {
+      background: rgba(253, 157, 36, 0.15);
+      color: #fd9d24;
+      border: 1px solid rgba(253, 157, 36, 0.4);
+    }
+
+    .sdg-13 {
+      background: rgba(72, 119, 61, 0.25);
+      color: #65a30d;
+      border: 1px solid rgba(72, 119, 61, 0.5);
+    }
+
+    .pulse-live {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* KPI Bar */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      padding: 1.25rem 2rem 0.5rem;
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 1.1rem 1.25rem;
+      backdrop-filter: blur(8px);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+    }
+
+    .kpi-low::before { background: var(--risk-low); }
+    .kpi-mod::before { background: var(--risk-mod); }
+    .kpi-high::before { background: var(--risk-high); }
+    .kpi-severe::before { background: var(--risk-severe); }
+
+    .kpi-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .kpi-val {
+      font-size: 1.85rem;
+      font-weight: 800;
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+    }
+
+    .kpi-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Main Grid Layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      padding: 1rem 2rem 2rem;
+    }
+
+    @media (max-width: 1080px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Simulator Panel */
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .panel-header h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .scenario-presets {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-main);
+      padding: 0.55rem 0.85rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .preset-btn:hover {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: var(--accent-blue);
+      transform: translateX(3px);
+    }
+
+    .preset-btn.active {
+      background: rgba(6, 182, 212, 0.2);
+      border-color: var(--accent-cyan);
+    }
+
+    .control-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: #e2e8f0;
+    }
+
+    .control-val {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    .slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 4px;
+      background: #1e293b;
+      outline: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #38bdf8;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+      transition: transform 0.1s ease;
+    }
+
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .btn-recalc {
+      width: 100%;
+      padding: 0.85rem;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .btn-recalc:hover {
+      background: linear-gradient(135deg, #0369a1, #1d4ed8);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.6);
+    }
+
+    /* Map Box */
+    .map-container {
+      height: 520px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--glass-shadow);
+      position: relative;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #090d16;
+    }
+
+    .map-overlay-legend {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(9, 13, 22, 0.9);
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+      font-size: 0.78rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .legend-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Tabs Section */
+    .tabs-nav {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Table */
+    .custom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+
+    .custom-table th {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      color: #94a3b8;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .custom-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .custom-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge-status {
+      display: inline-block;
+      padding: 0.25rem 0.65rem;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-low { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-mod { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-high { background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.4); }
+    .badge-severe { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); }
+
+    .action-btn-sm {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .action-btn-sm:hover {
+      background: #0284c7;
+      color: white;
+    }
+
+    /* Modal for Logging Action */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-box {
+      background: #0f172a;
+      border: 1px solid var(--border-accent);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 520px;
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      color: white;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: #38bdf8;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    /* Leaflet popup customization */
+    .leaflet-popup-content-wrapper {
+      background: #0f172a !important;
+      color: #f1f5f9 !important;
+      border: 1px solid var(--border-accent) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+    }
+    .leaflet-popup-tip {
+      background: #0f172a !important;
+    }
+    .popup-box h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+    .popup-box p {
+      font-size: 0.78rem;
+      margin-bottom: 0.3rem;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-icon">🌊</div>
+      <div class="brand-text">
+        <h1>Urban Flood Impact Classification & Preparedness Platform</h1>
+        <p>Real-Time Hydrological ML Classification & Municipal Disaster Preparedness</p>
+      </div>
+    </div>
+    <div class="sdg-badges">
+      <span class="sdg-tag sdg-11">🏙️ SDG 11: Sustainable Cities</span>
+      <span class="sdg-tag sdg-13">⚡ SDG 13: Climate Action</span>
+      <div style="display: flex; align-items: center; gap: 0.4rem; margin-left: 0.5rem;">
+        <span class="pulse-live"></span>
+        <span style="font-size: 0.78rem; font-weight: 600; color: #10b981;">ML Engine Live</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- KPI Overview Row -->
+  <div class="kpi-row">
+    <div class="kpi-card kpi-low">
+      <div class="kpi-title">Low Impact Wards</div>
+      <div class="kpi-val" id="kpi-low" style="color: #34d399;">--</div>
+      <div class="kpi-sub">Standard municipal runoff handling</div>
+    </div>
+    <div class="kpi-card kpi-mod">
+      <div class="kpi-title">Moderate Advisory</div>
+      <div class="kpi-val" id="kpi-mod" style="color: #fbbf24;">--</div>
+      <div class="kpi-sub">10–30 cm arterial waterlogging</div>
+    </div>
+    <div class="kpi-card kpi-high">
+      <div class="kpi-title">High Risk Zones</div>
+      <div class="kpi-val" id="kpi-high" style="color: #fb923c;">--</div>
+      <div class="kpi-sub">Residential ingress; pump staging</div>
+    </div>
+    <div class="kpi-card kpi-severe">
+      <div class="kpi-title">Severe Inundation</div>
+      <div class="kpi-val" id="kpi-severe" style="color: #f87171;">--</div>
+      <div class="kpi-sub">Immediate evacuation & boats</div>
+    </div>
+  </div>
+
+  <!-- Main Grid Layout -->
+  <div class="main-grid">
+    <!-- Simulator Sidebar -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2>🎛️ Scenario Simulator</h2>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Real-time ML Re-score</span>
+      </div>
+
+      <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase;">
+        Disaster Benchmark Presets:
+      </div>
+      <div class="scenario-presets">
+        <button class="preset-btn" onclick="applyPreset(25, 6, 1.0, 1.0, 500, this)">
+          <span>☀️ Normal Seasonal Rain</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">25 mm</span>
+        </button>
+        <button class="preset-btn active" onclick="applyPreset(95, 22, 1.3, 1.2, 3200, this)">
+          <span>🌧️ Monsoon Deluge Wave</span>
+          <span style="font-size: 0.75rem; color: #fbbf24;">95 mm</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset(210, 42, 1.8, 1.5, 8500, this)">
+          <span>🌀 2021 Cyclone Michaung</span>
+          <span style="font-size: 0.75rem; color: #fb923c;">210 mm</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset(340, 65, 2.4, 1.9, 15000, this)">
+          <span>🚨 2015 Catastrophic Cloudburst</span>
+          <span style="font-size: 0.75rem; color: #f87171;">340 mm</span>
+        </button>
+      </div>
+
+      <!-- Controls -->
+      <div class="control-group">
+        <div class="control-label">
+          <span>24h Rainfall:</span>
+          <span class="control-val" id="val-rain">95 mm</span>
+        </div>
+        <input type="range" min="5" max="380" step="5" value="95" class="slider" id="input-rain" oninput="updateControls()">
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Rain Intensity:</span>
+          <span class="control-val" id="val-intensity">22 mm/hr</span>
+        </div>
+        <input type="range" min="2" max="90" step="2" value="22" class="slider" id="input-intensity" oninput="updateControls()">
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>River/Canal Water Level:</span>
+          <span class="control-val" id="val-water">1.3x Normal</span>
+        </div>
+        <input type="range" min="0.5" max="2.8" step="0.1" value="1.3" class="slider" id="input-water" oninput="updateControls()">
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Drain Siltation / Choke:</span>
+          <span class="control-val" id="val-silt">1.2x Silted</span>
+        </div>
+        <input type="range" min="0.5" max="2.5" step="0.1" value="1.2" class="slider" id="input-silt" oninput="updateControls()">
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Reservoir Discharge:</span>
+          <span class="control-val" id="val-discharge">3,200 cusecs</span>
+        </div>
+        <input type="range" min="200" max="18000" step="200" value="3200" class="slider" id="input-discharge" oninput="updateControls()">
+      </div>
+
+      <button class="btn-recalc" onclick="runSimulation()">
+        <span>⚡ Run ML Inundation Inference</span>
+      </button>
+    </div>
+
+    <!-- Map & Visualizations -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <div class="map-container">
+        <div id="map"></div>
+        <div class="map-overlay-legend">
+          <div style="font-weight: 700; margin-bottom: 0.4rem; color: #94a3b8;">Impact Classification</div>
+          <div class="legend-item"><div class="legend-dot" style="background: var(--risk-low);"></div> Low Risk (Normal)</div>
+          <div class="legend-item"><div class="legend-dot" style="background: var(--risk-mod);"></div> Moderate Advisory (10-30cm)</div>
+          <div class="legend-item"><div class="legend-dot" style="background: var(--risk-high);"></div> High Alert (30-75cm)</div>
+          <div class="legend-item"><div class="legend-dot" style="background: var(--risk-severe);"></div> Severe Inundation (&gt;75cm)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs Diagnostic Section -->
+  <div style="padding: 0 2rem 2.5rem;">
+    <div class="panel">
+      <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('tab-matrix', this)">📋 Ward Risk Matrix & Actions</button>
+        <button class="tab-btn" onclick="switchTab('tab-history', this)">🕰️ Historical Event Benchmarking</button>
+        <button class="tab-btn" onclick="switchTab('tab-ml', this)">📈 ML Validation & Threshold Curves</button>
+        <button class="tab-btn" onclick="switchTab('tab-logs', this)">🚨 Emergency Action Audit Log</button>
+      </div>
+
+      <!-- Tab 1: Ward Matrix -->
+      <div id="tab-matrix" class="tab-content active">
+        <div style="overflow-x: auto;">
+          <table class="custom-table" id="wards-table">
+            <thead>
+              <tr>
+                <th>Ward ID & Name</th>
+                <th>Zone</th>
+                <th>Elevation</th>
+                <th>Drain Capacity</th>
+                <th>Land Use</th>
+                <th>Predicted Impact</th>
+                <th>Action Protocol</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="wards-table-body">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 2: Historical Benchmarks -->
+      <div id="tab-history" class="tab-content">
+        <div style="overflow-x: auto;">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Benchmark Event</th>
+                <th>Year</th>
+                <th>Benchmarked Rain</th>
+                <th>Current Rain Variance</th>
+                <th>Hydrological Comparison Assessment</th>
+                <th>Historical Context</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 3: ML Validation & Thresholds -->
+      <div id="tab-ml" class="tab-content">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+          <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+            <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #38bdf8;">Rainfall Threshold Sensitivity</h4>
+            <img src="/static/threshold_analysis.png" alt="Threshold Analysis" style="width: 100%; border-radius: 8px;">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+              Critical inflection point: Lowland basins transition to Severe Inundation (>50% probability) once 24h rainfall exceeds 95mm.
+            </p>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+            <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #38bdf8;">Model Feature Importance (RF)</h4>
+            <img src="/static/feature_importance.png" alt="Feature Importance" style="width: 100%; border-radius: 8px;">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+              Elevation, rainfall volume, drainage capacity, and water gauge levels form the top predictive drivers.
+            </p>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+            <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #38bdf8;">Confusion Matrix (Test Accuracy: 96.3%)</h4>
+            <img src="/static/confusion_matrix.png" alt="Confusion Matrix" style="width: 100%; border-radius: 8px;">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+              Macro F1: 0.942, Weighted F1: 0.962, ROC-AUC: 0.997 evaluated across 700 hold-out test samples.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Action Log -->
+      <div id="tab-logs" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Log and audit official disaster mitigation actions taken by municipal authorities.
+          </p>
+          <button class="action-btn-sm" onclick="openActionModal('CITY-WIDE', 'City-Wide General Action')">
+            + New Emergency Action Log
+          </button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Ward / Target</th>
+                <th>Authorized Unit</th>
+                <th>Action Category</th>
+                <th>Operational Directives & Notes</th>
+              </tr>
+            </thead>
+            <tbody id="action-logs-body">
+              <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading action logs...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Logging Action -->
+  <div class="modal-backdrop" id="action-modal">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span>🚨 Log Preparedness Action</span>
+        <button style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;" onclick="closeActionModal()">&times;</button>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Integrates ML decision outputs directly into the official disaster response workflow.
+      </p>
+
+      <div class="form-group">
+        <label>Target Location / Ward</label>
+        <input type="text" id="log-target" class="form-input" readonly>
+      </div>
+
+      <div class="form-group">
+        <label>Authorized Unit</label>
+        <select id="log-unit" class="form-select">
+          <option value="NDRF / SDRF Taskforce">NDRF / SDRF Taskforce</option>
+          <option value="Municipal Stormwater Engineering">Municipal Stormwater Engineering</option>
+          <option value="Traffic Management & Police">Traffic Management & Police</option>
+          <option value="Disaster Shelter & Relief Operations">Disaster Shelter & Relief Operations</option>
+          <option value="Public Works Dewatering Team">Public Works Dewatering Team</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Action Category</label>
+        <select id="log-category" class="form-select">
+          <option value="Precautionary Dewatering Pump Dispatch">Precautionary Dewatering Pump Dispatch</option>
+          <option value="Traffic Diversion / Road Closure">Traffic Diversion / Road Closure</option>
+          <option value="Emergency Inundation Evacuation">Emergency Inundation Evacuation</option>
+          <option value="Relief Shelter & Food Distribution Setup">Relief Shelter & Food Distribution Setup</option>
+          <option value="Storm Drain Grate De-clogging">Storm Drain Grate De-clogging</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Directive Details / Operator Notes</label>
+        <textarea id="log-notes" class="form-textarea" rows="3" placeholder="Enter equipment IDs, deployed personnel count, or specific directives..."></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button class="preset-btn" onclick="closeActionModal()">Cancel</button>
+        <button class="action-btn-sm" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;" onclick="submitActionLog()">Save & Dispatch Directive</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    let map;
+    let markersLayer;
+    let currentWards = [];
+
+    // Initialize Leaflet Map
+    function initMap() {
+      map = L.map('map', {
+        zoomControl: true,
+        attributionControl: true
+      }).setView([13.04, 80.22], 11);
+
+      // 100% Free Tile Layers - No API Key, No Watermark Required
+      const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c'],
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      });
+
+      const esriDark = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16,
+        attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+      });
+
+      const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 18,
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS Community'
+      });
+
+      const esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 18,
+        attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+      });
+
+      // Default to OpenStreetMap Standard (Guaranteed 100% Free Map Display)
+      osmStandard.addTo(map);
+
+      // Add Basemap Layer Switcher Control
+      const baseMaps = {
+        "🗺️ OpenStreetMap Standard": osmStandard,
+        "🌙 Dark Mode (Esri Dark)": esriDark,
+        "🛰️ Esri Satellite": esriSatellite,
+        "⛰️ Esri Topographic": esriTopo
+      };
+
+      L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+      markersLayer = L.layerGroup().addTo(map);
+
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 250);
+    }
+
+    function updateControls() {
+      document.getElementById('val-rain').innerText = document.getElementById('input-rain').value + ' mm';
+      document.getElementById('val-intensity').innerText = document.getElementById('input-intensity').value + ' mm/hr';
+      document.getElementById('val-water').innerText = document.getElementById('input-water').value + 'x Normal';
+      document.getElementById('val-silt').innerText = document.getElementById('input-silt').value + 'x Silted';
+      document.getElementById('val-discharge').innerText = parseInt(document.getElementById('input-discharge').value).toLocaleString() + ' cusecs';
+    }
+
+    function applyPreset(rain, intensity, water, silt, discharge, btn) {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      document.getElementById('input-rain').value = rain;
+      document.getElementById('input-intensity').value = intensity;
+      document.getElementById('input-water').value = water;
+      document.getElementById('input-silt').value = silt;
+      document.getElementById('input-discharge').value = discharge;
+
+      updateControls();
+      runSimulation();
+    }
+
+    async function runSimulation() {
+      const rain = document.getElementById('input-rain').value;
+      const intensity = document.getElementById('input-intensity').value;
+      const water = document.getElementById('input-water').value;
+      const silt = document.getElementById('input-silt').value;
+      const discharge = document.getElementById('input-discharge').value;
+
+      try {
+        const res = await fetch(`/api/simulate?rainfall_24h=${rain}&rainfall_intensity=${intensity}&water_level_factor=${water}&siltation_factor=${silt}&reservoir_discharge=${discharge}`);
+        const data = await res.json();
+        currentWards = data.wards;
+
+        // 1. Update KPIs
+        document.getElementById('kpi-low').innerText = data.summary['Low'] || 0;
+        document.getElementById('kpi-mod').innerText = data.summary['Moderate'] || 0;
+        document.getElementById('kpi-high').innerText = data.summary['High'] || 0;
+        document.getElementById('kpi-severe').innerText = data.summary['Severe Inundation'] || 0;
+
+        // 2. Render Map Markers
+        renderMapMarkers(data.wards);
+
+        // 3. Render Table
+        renderTable(data.wards);
+
+        // 4. Render Historical Comparisons
+        renderHistorical(data.historical_comparisons);
+
+      } catch (err) {
+        console.error("Simulation error:", err);
+      }
+    }
+
+    function renderMapMarkers(wards) {
+      markersLayer.clearLayers();
+
+      wards.forEach(w => {
+        const pred = w.prediction;
+        const color = pred.color;
+        const radius = pred.predicted_class === 3 ? 18 : (pred.predicted_class === 2 ? 14 : 10);
+
+        // Circle marker with glow
+        const marker = L.circleMarker([w.latitude, w.longitude], {
+          radius: radius,
+          fillColor: color,
+          color: '#ffffff',
+          weight: 2,
+          opacity: 0.9,
+          fillOpacity: 0.75
+        });
+
+        const popupContent = `
+          <div class="popup-box">
+            <h3 style="color:${color};">${w.ward_name} (${w.ward_id})</h3>
+            <p><strong>Impact Level:</strong> ${pred.impact_label}</p>
+            <p><strong>Confidence:</strong> ${(pred.confidence * 100).toFixed(1)}%</p>
+            <p><strong>Elevation:</strong> ${w.elevation_m} m | <strong>Land:</strong> ${w.land_use.replace(/_/g, ' ')}</p>
+            <p><strong>Summary:</strong> ${pred.summary}</p>
+            <div style="margin-top:0.5rem;">
+              <button class="action-btn-sm" onclick="openActionModal('${w.ward_id} - ${w.ward_name}', '${pred.action_protocol[0]}')">
+                Log Emergency Directive
+              </button>
+            </div>
+          </div>
+        `;
+
+        marker.bindPopup(popupContent);
+        markersLayer.addLayer(marker);
+      });
+    }
+
+    function renderTable(wards) {
+      const tbody = document.getElementById('wards-table-body');
+      tbody.innerHTML = '';
+
+      wards.forEach(w => {
+        const pred = w.prediction;
+        let badgeClass = 'badge-low';
+        if (pred.predicted_class === 1) badgeClass = 'badge-mod';
+        if (pred.predicted_class === 2) badgeClass = 'badge-high';
+        if (pred.predicted_class === 3) badgeClass = 'badge-severe';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${w.ward_name}</strong><br><span style="font-size:0.75rem; color:#64748b;">${w.ward_id}</span></td>
+          <td>${w.zone}</td>
+          <td>${w.elevation_m} m</td>
+          <td>${w.inputs.drain_capacity_pct.toFixed(0)}%</td>
+          <td>${w.land_use.replace(/_/g, ' ')}</td>
+          <td><span class="badge-status ${badgeClass}">${pred.impact_label}</span></td>
+          <td style="max-width:280px; font-size:0.75rem; color:#cbd5e1;">${pred.action_protocol[0]}</td>
+          <td>
+            <button class="action-btn-sm" onclick="openActionModal('${w.ward_id} - ${w.ward_name}', '${pred.action_protocol[0]}')">
+              Log Action
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderHistorical(comps) {
+      const tbody = document.getElementById('history-table-body');
+      tbody.innerHTML = '';
+
+      comps.forEach(c => {
+        const tr = document.createElement('tr');
+        const diffColor = c.rainfall_variance_mm > 0 ? '#f87171' : '#34d399';
+        const diffSign = c.rainfall_variance_mm > 0 ? '+' : '';
+
+        tr.innerHTML = `
+          <td><strong>${c.event}</strong></td>
+          <td>${c.year}</td>
+          <td>${c.historical_rainfall_mm} mm</td>
+          <td style="color:${diffColor}; font-weight:700;">${diffSign}${c.rainfall_variance_mm} mm</td>
+          <td><strong>${c.match_assessment}</strong></td>
+          <td style="color:#94a3b8; font-size:0.78rem;">${c.description}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadActionLogs() {
+      try {
+        const res = await fetch('/api/logs');
+        const logs = await res.json();
+        const tbody = document.getElementById('action-logs-body');
+        tbody.innerHTML = '';
+
+        if (!logs || logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No action logs recorded yet.</td></tr>';
+          return;
+        }
+
+        logs.forEach(l => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-family:'JetBrains Mono', monospace; font-size:0.75rem; color:#94a3b8;">${l.timestamp}</td>
+            <td><strong>${l.target}</strong></td>
+            <td>${l.unit}</td>
+            <td><span class="badge-status badge-high">${l.category}</span></td>
+            <td style="font-size:0.78rem;">${l.notes || 'Standard protocol dispatched.'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("Failed to load logs:", err);
+      }
+    }
+
+    function openActionModal(target, defaultNotes) {
+      document.getElementById('log-target').value = target;
+      document.getElementById('log-notes').value = defaultNotes ? 'Directives: ' + defaultNotes : '';
+      document.getElementById('action-modal').style.display = 'flex';
+    }
+
+    function closeActionModal() {
+      document.getElementById('action-modal').style.display = 'none';
+    }
+
+    async function submitActionLog() {
+      const target = document.getElementById('log-target').value;
+      const unit = document.getElementById('log-unit').value;
+      const category = document.getElementById('log-category').value;
+      const notes = document.getElementById('log-notes').value;
+
+      try {
+        await fetch('/api/log_action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target, unit, category, notes })
+        });
+        closeActionModal();
+        loadActionLogs();
+        switchTab('tab-logs', document.querySelectorAll('.tab-btn')[3]);
+      } catch (err) {
+        alert("Failed to submit log: " + err);
+      }
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    // Initialize on window load
+    window.onload = () => {
+      initMap();
+      updateControls();
+      runSimulation();
+      loadActionLogs();
+    };
+  </script>
+</body>
+</html>
