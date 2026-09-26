@@ -5,16 +5,27 @@ Compatible with Streamlit Community Cloud deployment.
 """
 
 import os
+import sys
 import json
 import pandas as pd
 import numpy as np
 import pydeck as pdk
 import streamlit as st
 from datetime import datetime
+
+# Ensure project directory is in sys.path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SUB_DIR = os.path.join(BASE_DIR, "Internal Hackathon")
+if os.path.exists(SUB_DIR) and SUB_DIR not in sys.path:
+    sys.path.insert(0, SUB_DIR)
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
 from flood_engine import FloodPreparednessEngine, HISTORICAL_BENCHMARKS
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOG_FILE = os.path.join(BASE_DIR, "flood_action_log.json")
+LOG_FILE = os.path.join(BASE_DIR, "Internal Hackathon", "flood_action_log.json")
+if not os.path.exists(os.path.dirname(LOG_FILE)):
+    LOG_FILE = os.path.join(BASE_DIR, "flood_action_log.json")
 
 # -----------------------------------------------------------------------------
 # Streamlit Page Configuration
@@ -93,7 +104,7 @@ st.markdown("""
     .sdg-13 { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
     .ml-live { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
 </style>
-""", unsafe_allow_html=unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # Initialize Engine & Helper Functions
@@ -373,9 +384,13 @@ with tab_ml:
     
     col_img1, col_img2, col_img3 = st.columns(3)
     
-    thresh_img = os.path.join(BASE_DIR, "output_models", "threshold_analysis.png")
-    fi_img = os.path.join(BASE_DIR, "output_models", "feature_importance.png")
-    cm_img = os.path.join(BASE_DIR, "output_models", "confusion_matrix.png")
+    out_dir = os.path.join(BASE_DIR, "output_models")
+    if not os.path.exists(out_dir):
+        out_dir = os.path.join(BASE_DIR, "Internal Hackathon", "output_models")
+        
+    thresh_img = os.path.join(out_dir, "threshold_analysis.png")
+    fi_img = os.path.join(out_dir, "feature_importance.png")
+    cm_img = os.path.join(out_dir, "confusion_matrix.png")
     
     with col_img1:
         if os.path.exists(thresh_img):
@@ -396,7 +411,7 @@ with tab_ml:
             st.info("Confusion Matrix plot generated during training.")
             
     # Model Metadata Display
-    meta_path = os.path.join(BASE_DIR, "output_models", "model_metadata.json")
+    meta_path = os.path.join(out_dir, "model_metadata.json")
     if os.path.exists(meta_path):
         with open(meta_path, "r") as f:
             meta = json.load(f)
