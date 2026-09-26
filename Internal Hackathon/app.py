@@ -93,7 +93,7 @@ st.markdown("""
     .sdg-13 { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
     .ml-live { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
 </style>
-""", unsafe_allow_html=unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # Initialize Engine & Helper Functions
