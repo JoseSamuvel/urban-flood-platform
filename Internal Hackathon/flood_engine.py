@@ -114,37 +114,22 @@ DEFAULT_META_PATH = os.path.join(BASE_DIR, "output_models", "model_metadata.json
 
 class FloodPreparednessEngine:
     def __init__(self, model_path=None, meta_path=None):
-        if model_path is None:
-            model_path = DEFAULT_MODEL_PATH
-        elif not os.path.isabs(model_path) and not os.path.exists(model_path):
-            alt_path = os.path.join(BASE_DIR, model_path)
-            if os.path.exists(alt_path):
-                model_path = alt_path
-
-        if meta_path is None:
-            meta_path = DEFAULT_META_PATH
-        elif not os.path.isabs(meta_path) and not os.path.exists(meta_path):
-            alt_path = os.path.join(BASE_DIR, meta_path)
-            if os.path.exists(alt_path):
-                meta_path = alt_path
-
         self.wards = WARDS
-        loaded_successfully = False
 
-        if os.path.exists(model_path) and os.path.exists(meta_path):
-            try:
-                self.pipeline = joblib.load(model_path)
-                with open(meta_path, "r") as f:
-                    self.metadata = json.load(f)
-                loaded_successfully = True
-            except Exception as e:
-                print(f"[FloodEngine Warning] Checkpoint load failed ({e}). Retraining model pipeline for local environment compatibility...")
+        # Always build & train the pipeline fresh in memory using current environment's scikit-learn
+        from train_flood_model import train_ml_pipeline
+        from flood_data_engine import generate_flood_dataset
 
-        if not loaded_successfully:
-            from train_flood_model import train_ml_pipeline
-            data_csv = os.path.join(BASE_DIR, "urban_flood_dataset.csv")
-            out_dir = os.path.dirname(model_path) if os.path.dirname(model_path) else os.path.join(BASE_DIR, "output_models")
-            self.pipeline, self.metadata = train_ml_pipeline(data_csv, output_dir=out_dir)
+        data_csv = os.path.join(BASE_DIR, "urban_flood_dataset.csv")
+        out_dir = os.path.join(BASE_DIR, "output_models")
+
+        if not os.path.exists(data_csv):
+            df_gen = generate_flood_dataset(n_samples=3500)
+            os.makedirs(os.path.dirname(data_csv), exist_ok=True)
+            df_gen.to_csv(data_csv, index=False)
+
+        # Fit fresh pipeline matching current scikit-learn runtime
+        self.pipeline, self.metadata = train_ml_pipeline(data_csv, output_dir=out_dir)
 
     def predict_location(self, input_dict: Dict[str, Any]) -> Dict[str, Any]:
         """Classifies flood risk for a specific location input."""
