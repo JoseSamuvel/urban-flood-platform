@@ -128,12 +128,23 @@ class FloodPreparednessEngine:
             if os.path.exists(alt_path):
                 meta_path = alt_path
 
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found at {model_path}. Please run train_flood_model.py first.")
-        self.pipeline = joblib.load(model_path)
-        with open(meta_path, "r") as f:
-            self.metadata = json.load(f)
         self.wards = WARDS
+        loaded_successfully = False
+
+        if os.path.exists(model_path) and os.path.exists(meta_path):
+            try:
+                self.pipeline = joblib.load(model_path)
+                with open(meta_path, "r") as f:
+                    self.metadata = json.load(f)
+                loaded_successfully = True
+            except Exception as e:
+                print(f"[FloodEngine Warning] Checkpoint load failed ({e}). Retraining model pipeline for local environment compatibility...")
+
+        if not loaded_successfully:
+            from train_flood_model import train_ml_pipeline
+            data_csv = os.path.join(BASE_DIR, "urban_flood_dataset.csv")
+            out_dir = os.path.dirname(model_path) if os.path.dirname(model_path) else os.path.join(BASE_DIR, "output_models")
+            self.pipeline, self.metadata = train_ml_pipeline(data_csv, output_dir=out_dir)
 
     def predict_location(self, input_dict: Dict[str, Any]) -> Dict[str, Any]:
         """Classifies flood risk for a specific location input."""
