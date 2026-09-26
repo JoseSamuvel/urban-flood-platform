@@ -17,8 +17,14 @@ import json
 import argparse
 import joblib
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use("Agg") # Non-interactive headless backend for server environments
+    import matplotlib.pyplot as plt
+    HAS_MATPLOTLIB = True
+except Exception:
+    HAS_MATPLOTLIB = False
+
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.compose import ColumnTransformer
@@ -65,6 +71,8 @@ def detect_target_and_features(df: pd.DataFrame, target_col: str = None):
 
 
 def plot_confusion_matrix(cm, class_names, save_path):
+    if not HAS_MATPLOTLIB:
+        return
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
     ax.figure.colorbar(im, ax=ax)
@@ -93,6 +101,8 @@ def plot_confusion_matrix(cm, class_names, save_path):
 
 
 def plot_feature_importance(model, feature_names, save_path):
+    if not HAS_MATPLOTLIB:
+        return
     if hasattr(model, "feature_importances_"):
         importances = model.feature_importances_
         indices = np.argsort(importances)
